@@ -1,0 +1,117 @@
+{
+ "actions": [],
+ "creation": "2024-09-27 12:56:53.901608",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "id",
+  "reference_number",
+  "intelize_references",
+  "sales_invoice",
+  "payment_entry",
+  "column_break_5nf3s",
+  "date",
+  "time",
+  "paid_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "id",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "ID ",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Date ",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "time",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Time ",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "paid_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Paid Amount ",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "reference_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Reference Number",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_5nf3s",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Payment Entry",
+   "options": "Payment Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "intelize_references",
+   "fieldtype": "Link",
+   "label": "Intelize Reference",
+   "options": "Intelize References",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  }
+ ],
+ "icon": "fa fa-list",
+ "in_create": 1,
+ "links": [],
+ "modified": "2024-10-03 13:22:28.415726",
+ "modified_by": "Administrator",
+ "module": "Isoft Intelize Integration",
+ "name": "Intelize Payment",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Intelize User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "search_fields": "reference_number",
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

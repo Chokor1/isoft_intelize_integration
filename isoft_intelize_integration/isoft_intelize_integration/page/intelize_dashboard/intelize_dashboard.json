@@ -1,0 +1,29 @@
+{
+ "content": null,
+ "creation": "2024-01-01 00:00:00",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2024-01-01 00:00:00",
+ "modified_by": "Administrator",
+ "module": "Isoft Intelize Integration",
+ "name": "intelize-dashboard",
+ "owner": "Administrator",
+ "page_name": "intelize-dashboard",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Accounts User"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Intelize Dashboard"
+}

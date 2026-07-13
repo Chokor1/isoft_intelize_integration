@@ -1,0 +1,129 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-09-26 16:43:39.646818",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "entity_number",
+  "base_url",
+  "api_token",
+  "enabled",
+  "max_amount_per_reference",
+  "currency",
+  "mode_of_payment",
+  "auto_generate_payment_entry",
+  "payment_entry_naming_series",
+  "default_owner",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "base_url",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Base Url",
+   "reqd": 1
+  },
+  {
+   "fieldname": "api_token",
+   "fieldtype": "Text",
+   "in_list_view": 1,
+   "label": "API Token",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Intelize Settings",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "max_amount_per_reference",
+   "fieldtype": "Currency",
+   "label": "Max Amount Per Reference"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Link",
+   "label": "Mode of Payment",
+   "options": "Mode of Payment",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_generate_payment_entry",
+   "fieldtype": "Check",
+   "label": "Auto Generate Payment Entry"
+  },
+  {
+   "fieldname": "payment_entry_naming_series",
+   "fieldtype": "Data",
+   "label": "Payment Entry Naming Series ",
+   "reqd": 1
+  },
+  {
+   "fieldname": "default_owner",
+   "fieldtype": "Link",
+   "label": "Default Owner ",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "entity_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Entity Number",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-10-03 13:21:55.068787",
+ "modified_by": "Administrator",
+ "module": "Isoft Intelize Integration",
+ "name": "Intelize Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Intelize User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}
