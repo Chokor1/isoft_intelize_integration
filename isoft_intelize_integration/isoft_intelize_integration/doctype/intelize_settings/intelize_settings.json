@@ -14,6 +14,9 @@
   "currency",
   "mode_of_payment",
   "auto_generate_payment_entry",
+  "reference_generation_section",
+  "generate_reference_on_quotation",
+  "generate_reference_on_sales_invoice",
   "payment_entry_naming_series",
   "default_owner",
   "amended_from"
@@ -92,6 +95,23 @@
    "in_list_view": 1,
    "label": "Entity Number",
    "reqd": 1
+  },
+  {
+   "fieldname": "reference_generation_section",
+   "fieldtype": "Section Break",
+   "label": "Reference Generation"
+  },
+  {
+   "default": "0",
+   "fieldname": "generate_reference_on_quotation",
+   "fieldtype": "Check",
+   "label": "Generate Reference on Quotation"
+  },
+  {
+   "default": "0",
+   "fieldname": "generate_reference_on_sales_invoice",
+   "fieldtype": "Check",
+   "label": "Generate Reference on Sales Invoice"
   }
  ],
  "index_web_pages_for_search": 1,

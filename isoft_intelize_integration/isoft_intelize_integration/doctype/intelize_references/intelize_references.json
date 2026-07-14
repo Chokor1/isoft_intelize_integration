@@ -9,6 +9,7 @@
   "reference",
   "status",
   "quotation",
+  "sales_invoice",
   "column_break_gncz5",
   "amount",
   "due_date",
@@ -69,8 +70,13 @@
    "in_list_view": 1,
    "label": "Quotation",
    "options": "Quotation",
-   "reqd": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice"
   }
  ],
  "index_web_pages_for_search": 1,

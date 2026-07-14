@@ -1,81 +1,149 @@
+/* Intelize Dashboard — solid, modern, red-accent theme.
+   Light mode: white surfaces + red borders + dark text.
+   Dark mode:  black surfaces + red borders + white text. */
+
 .intelize-dashboard {
-	padding: 10px 0;
+	--intelize-red: #dc2626;
+	--intelize-red-strong: #b91c1c;
+	--intelize-surface: #ffffff;
+	--intelize-text: #111111;
+	--intelize-muted: #6b7280;
+	padding: 12px 0;
+	color: var(--intelize-text);
 }
 
+[data-theme="dark"] .intelize-dashboard {
+	--intelize-surface: #000000;
+	--intelize-text: #ffffff;
+	--intelize-muted: #9ca3af;
+}
+
+/* ---- Cards ---- */
 .intelize-cards {
-	margin-bottom: 20px;
-	gap: 10px 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 14px;
+	margin-bottom: 26px;
 }
 
 .intelize-card {
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-md);
-	padding: 16px;
-	background: var(--card-bg, var(--fg-color));
-	height: 100%;
-	border-left: 4px solid var(--gray-400);
+	background: var(--intelize-surface);
+	color: var(--intelize-text);
+	border: 2px solid var(--intelize-red);
+	border-radius: 12px;
+	padding: 18px 18px 16px;
+	transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.intelize-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 6px 18px rgba(220, 38, 38, 0.22);
 }
 
 .intelize-card-value {
-	font-size: 1.6rem;
-	font-weight: 700;
-	line-height: 1.2;
+	font-size: 1.75rem;
+	font-weight: 800;
+	line-height: 1.1;
+	letter-spacing: -0.02em;
 }
 
 .intelize-card-label {
-	color: var(--text-muted);
-	font-size: 0.8rem;
-	margin-top: 4px;
+	color: var(--intelize-muted);
+	font-size: 0.78rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	margin-top: 6px;
 }
 
-.intelize-card-blue {
-	border-left-color: var(--blue-500);
+/* status-tinted value numbers (border stays red for all) */
+.intelize-card-green .intelize-card-value {
+	color: #16a34a;
 }
-.intelize-card-green {
-	border-left-color: var(--green-500);
+.intelize-card-orange .intelize-card-value {
+	color: #ea580c;
 }
-.intelize-card-orange {
-	border-left-color: var(--orange-500);
+.intelize-card-red .intelize-card-value {
+	color: var(--intelize-red);
 }
-.intelize-card-red {
-	border-left-color: var(--red-500);
-}
-.intelize-card-purple {
-	border-left-color: var(--purple-500, #8b5cf6);
+.intelize-card-purple .intelize-card-value {
+	color: #7c3aed;
 }
 
+/* ---- Sections ---- */
 .intelize-section {
-	margin-top: 24px;
+	margin-top: 26px;
 }
 
 .intelize-section-title {
-	font-weight: 600;
+	font-weight: 700;
 	font-size: 1.05rem;
-	margin-bottom: 10px;
-	padding-bottom: 6px;
-	border-bottom: 1px solid var(--border-color);
+	color: var(--intelize-text);
+	margin-bottom: 12px;
+	padding-left: 10px;
+	border-left: 4px solid var(--intelize-red);
 }
 
 .intelize-subtitle {
-	font-weight: 600;
-	margin-bottom: 8px;
+	font-weight: 700;
+	color: var(--intelize-text);
+	margin-bottom: 10px;
+}
+
+/* ---- Payments table ---- */
+.intelize-payments,
+.intelize-reference-logs,
+.intelize-error-logs {
+	background: var(--intelize-surface);
+	border: 2px solid var(--intelize-red);
+	border-radius: 12px;
+	padding: 14px 16px;
 }
 
 .intelize-table {
 	font-size: 0.85rem;
+	margin-bottom: 0;
+	color: var(--intelize-text);
+	background: transparent;
 }
 
-.intelize-table th {
+.intelize-table thead th {
 	white-space: nowrap;
+	color: var(--intelize-text);
+	background: transparent;
+	border-bottom: 2px solid var(--intelize-red) !important;
+	border-top: none !important;
+	font-weight: 700;
 }
 
+.intelize-table td,
+.intelize-table th {
+	border-color: rgba(220, 38, 38, 0.18) !important;
+	vertical-align: middle;
+}
+
+[data-theme="dark"] .intelize-table td,
+[data-theme="dark"] .intelize-table th {
+	color: var(--intelize-text);
+}
+
+.intelize-table tbody tr:hover {
+	background: rgba(220, 38, 38, 0.06);
+}
+
+/* ---- Logs ---- */
 .intelize-log {
 	display: flex;
 	align-items: baseline;
 	gap: 8px;
-	padding: 6px 0;
-	border-bottom: 1px dashed var(--border-color);
+	padding: 7px 0;
+	border-bottom: 1px dashed rgba(220, 38, 38, 0.25);
 	font-size: 0.82rem;
+	color: var(--intelize-text);
+}
+
+.intelize-log:last-child {
+	border-bottom: none;
 }
 
 .intelize-log-msg {
@@ -85,5 +153,145 @@
 
 .intelize-log-time {
 	white-space: nowrap;
+	font-size: 0.74rem;
+	color: var(--intelize-muted);
+}
+
+/* ---- Red buttons inside the dashboard ---- */
+.intelize-dashboard .btn-primary,
+.intelize-dashboard .intelize-gen-pe {
+	background-color: var(--intelize-red);
+	border-color: var(--intelize-red);
+	color: #ffffff;
+	font-weight: 600;
+}
+
+.intelize-dashboard .btn-primary:hover,
+.intelize-dashboard .intelize-gen-pe:hover {
+	background-color: var(--intelize-red-strong);
+	border-color: var(--intelize-red-strong);
+}
+
+/* ================= Control Panel additions ================= */
+
+.hidden { display: none !important; }
+
+/* Settings health strip */
+.intelize-settings-strip {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.intelize-pill {
+	display: inline-block;
+	padding: 4px 10px;
+	border-radius: 999px;
 	font-size: 0.75rem;
+	font-weight: 600;
+	background: var(--intelize-surface);
+	color: var(--intelize-text);
+	border: 1.5px solid var(--intelize-red);
+}
+
+.intelize-pill-green {
+	border-color: #16a34a;
+	color: #16a34a;
+}
+.intelize-pill-red {
+	border-color: var(--intelize-red);
+	color: var(--intelize-red);
+}
+
+/* Tabs */
+.intelize-tabs {
+	display: flex;
+	gap: 6px;
+	border-bottom: 2px solid var(--intelize-red);
+	margin-bottom: 18px;
+	flex-wrap: wrap;
+}
+
+.intelize-tab {
+	appearance: none;
+	background: transparent;
+	border: 2px solid transparent;
+	border-bottom: none;
+	border-radius: 10px 10px 0 0;
+	padding: 8px 18px;
+	font-weight: 600;
+	color: var(--intelize-muted);
+	cursor: pointer;
+	margin-bottom: -2px;
+}
+
+.intelize-tab:hover {
+	color: var(--intelize-text);
+}
+
+.intelize-tab.active {
+	color: #ffffff;
+	background: var(--intelize-red);
+	border-color: var(--intelize-red);
+}
+
+.intelize-count {
+	display: inline-block;
+	min-width: 18px;
+	padding: 0 6px;
+	margin-left: 4px;
+	border-radius: 999px;
+	font-size: 0.72rem;
+	background: rgba(0, 0, 0, 0.12);
+}
+
+.intelize-tab.active .intelize-count {
+	background: rgba(255, 255, 255, 0.28);
+}
+
+/* Group titles inside overview */
+.intelize-group-title {
+	font-weight: 700;
+	font-size: 0.95rem;
+	color: var(--intelize-red);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin: 6px 0 12px;
+}
+
+.intelize-empty {
+	padding: 28px;
+	text-align: center;
+	color: var(--intelize-muted);
+	border: 2px dashed var(--intelize-red);
+	border-radius: 12px;
+	background: var(--intelize-surface);
+}
+
+.intelize-expired {
+	color: var(--intelize-red);
+	font-weight: 600;
+}
+
+.intelize-actions .btn {
+	margin-left: 4px;
+}
+
+.intelize-log-box {
+	background: var(--intelize-surface);
+	border: 2px solid var(--intelize-red);
+	border-radius: 12px;
+	padding: 12px 16px;
+	max-height: 460px;
+	overflow-y: auto;
+}
+
+/* Modal source line (shared modal) */
+.intelize-modal-source {
+	margin-bottom: 10px;
+	padding: 8px 12px;
+	border-left: 4px solid #dc2626;
+	background: rgba(220, 38, 38, 0.06);
+	border-radius: 6px;
 }

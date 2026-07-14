@@ -27,12 +27,12 @@ def _add_group(data, label, items, non_standard_fieldnames=None):
 
 
 def get_sales_invoice_dashboard_data(data=None):
-	# Intelize Payment links back via its `sales_invoice` field.
+	# Intelize Payment and Intelize References both link back via `sales_invoice`.
 	return _add_group(
 		data,
 		"Intelize",
-		["Intelize Payment"],
-		{"Intelize Payment": "sales_invoice"},
+		["Intelize Payment", "Intelize References"],
+		{"Intelize Payment": "sales_invoice", "Intelize References": "sales_invoice"},
 	)
 
 

@@ -1,33 +1,29 @@
 frappe.pages["intelize-dashboard"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: __("Intelize Dashboard"),
+		title: __("Intelize Control Panel"),
 		single_column: true,
 	});
-
-	const dashboard = new IntelizeDashboard(page);
-	wrapper.intelize_dashboard = dashboard;
+	wrapper.intelize_cp = new IntelizeControlPanel(page);
 };
 
 frappe.pages["intelize-dashboard"].on_page_show = function (wrapper) {
-	if (wrapper.intelize_dashboard) {
-		wrapper.intelize_dashboard.refresh();
-	}
+	if (wrapper.intelize_cp) wrapper.intelize_cp.refresh();
 };
 
-class IntelizeDashboard {
+const IP_METHOD = "isoft_intelize_integration.isoft_intelize_integration.page.intelize_dashboard.intelize_dashboard";
+const IP_PAYMENT = "isoft_intelize_integration.isoft_intelize_integration.doctype.intelize_payment.intelize_payment";
+const IP_REFERENCE = "isoft_intelize_integration.isoft_intelize_integration.doctype.intelize_references.intelize_references";
+
+class IntelizeControlPanel {
 	constructor(page) {
 		this.page = page;
-		this.method_base =
-			"isoft_intelize_integration.isoft_intelize_integration.page.intelize_dashboard.intelize_dashboard";
-		this.payment_method_base =
-			"isoft_intelize_integration.isoft_intelize_integration.doctype.intelize_payment.intelize_payment";
+		this.active_tab = "overview";
 		this.make();
 		this.refresh();
 	}
 
 	make() {
-		// Filters
 		this.from_date = this.page.add_field({
 			fieldname: "from_date",
 			label: __("From Date"),
@@ -40,203 +36,290 @@ class IntelizeDashboard {
 			fieldtype: "Date",
 			default: frappe.datetime.get_today(),
 		});
-
 		this.from_date.$input.on("change", () => this.refresh());
 		this.to_date.$input.on("change", () => this.refresh());
 
 		this.page.set_primary_action(__("Refresh"), () => this.refresh(), "refresh");
 		this.page.add_button(__("Fetch Now"), () => this.fetch_now(), { icon: "download" });
-		this.page.add_menu_item(__("Open Intelize Settings"), () => {
-			frappe.set_route("Form", "Intelize Settings", "Intelize Settings");
-		});
+		this.page.add_menu_item(__("Intelize Settings"), () =>
+			frappe.set_route("List", "Intelize Settings")
+		);
+		this.page.add_menu_item(__("New Reference"), () =>
+			frappe.new_doc("Intelize References")
+		);
 
-		// Layout
 		this.body = $(`
-			<div class="intelize-dashboard">
-				<div class="intelize-cards row"></div>
-				<div class="intelize-section">
-					<div class="intelize-section-title">${__("Payments")}</div>
-					<div class="intelize-payments"></div>
+			<div class="intelize-cp">
+				<div class="intelize-settings-strip"></div>
+				<div class="intelize-tabs">
+					<button class="intelize-tab active" data-tab="overview">${__("Overview")}</button>
+					<button class="intelize-tab" data-tab="payments">${__("Payments")} <span class="intelize-count" data-count="payments"></span></button>
+					<button class="intelize-tab" data-tab="references">${__("References")} <span class="intelize-count" data-count="references"></span></button>
+					<button class="intelize-tab" data-tab="logs">${__("Logs")}</button>
 				</div>
-				<div class="intelize-section">
-					<div class="intelize-section-title">${__("Monitoring")}</div>
-					<div class="row">
-						<div class="col-md-6 intelize-reference-logs"></div>
-						<div class="col-md-6 intelize-error-logs"></div>
-					</div>
-				</div>
+				<div class="intelize-panel" data-panel="overview"></div>
+				<div class="intelize-panel hidden" data-panel="payments"></div>
+				<div class="intelize-panel hidden" data-panel="references"></div>
+				<div class="intelize-panel hidden" data-panel="logs"></div>
 			</div>
 		`).appendTo(this.page.main);
+
+		this.body.find(".intelize-tab").on("click", (e) => {
+			this.switch_tab($(e.currentTarget).attr("data-tab"));
+		});
 	}
 
 	get_filters() {
-		return {
-			from_date: this.from_date.get_value(),
-			to_date: this.to_date.get_value(),
-		};
+		return { from_date: this.from_date.get_value(), to_date: this.to_date.get_value() };
+	}
+
+	switch_tab(tab) {
+		this.active_tab = tab;
+		this.body.find(".intelize-tab").removeClass("active");
+		this.body.find(`.intelize-tab[data-tab="${tab}"]`).addClass("active");
+		this.body.find(".intelize-panel").addClass("hidden");
+		this.body.find(`.intelize-panel[data-panel="${tab}"]`).removeClass("hidden");
+		this.load_tab(tab);
 	}
 
 	refresh() {
+		this.load_overview(); // always refresh counts/strip
+		this.load_tab(this.active_tab);
+	}
+
+	load_tab(tab) {
+		if (tab === "overview") return this.load_overview();
+		if (tab === "payments") return this.load_payments();
+		if (tab === "references") return this.load_references();
+		if (tab === "logs") return this.load_logs();
+	}
+
+	// ---------- Overview ----------
+	load_overview() {
 		frappe.call({
-			method: `${this.method_base}.get_dashboard_data`,
+			method: `${IP_METHOD}.get_overview`,
 			args: this.get_filters(),
-			callback: (r) => {
-				if (r.message) {
-					this.render_cards(r.message.cards);
-					this.render_payments(r.message.payments);
-				}
-			},
-		});
-		frappe.call({
-			method: `${this.method_base}.get_logs`,
-			args: { limit: 20 },
-			callback: (r) => {
-				if (r.message) {
-					this.render_reference_logs(r.message.reference_logs);
-					this.render_error_logs(r.message.error_logs);
-				}
-			},
+			callback: (r) => r.message && this.render_overview(r.message),
 		});
 	}
 
-	render_cards(cards) {
-		const currency = frappe.defaults.get_default("currency") || "";
-		const defs = [
-			{ key: "total", label: __("Total Payments"), color: "blue", value: cards.total },
-			{ key: "processed", label: __("Processed"), color: "green", value: cards.processed },
-			{ key: "ready", label: __("Ready (no PE)"), color: "orange", value: cards.ready },
-			{ key: "pending", label: __("Unlinked"), color: "red", value: cards.pending },
-			{
-				key: "amount",
-				label: __("Total Amount"),
-				color: "purple",
-				value: format_currency(cards.total_amount, currency),
-			},
-		];
-		const html = defs
-			.map(
-				(d) => `
-				<div class="col-sm">
-					<div class="intelize-card intelize-card-${d.color}">
-						<div class="intelize-card-value">${d.value}</div>
-						<div class="intelize-card-label">${d.label}</div>
-					</div>
-				</div>`
-			)
-			.join("");
-		this.body.find(".intelize-cards").html(html);
+	render_overview(d) {
+		this.body.find('.intelize-count[data-count="payments"]').text(d.payments.total || "");
+		this.body.find('.intelize-count[data-count="references"]').text(d.references.total || "");
+		this.render_settings_strip(d.settings);
+
+		const cur = frappe.defaults.get_default("currency") || "";
+		const card = (val, label, color) => `
+			<div class="intelize-card intelize-card-${color}">
+				<div class="intelize-card-value">${val}</div>
+				<div class="intelize-card-label">${label}</div>
+			</div>`;
+
+		const p = d.payments;
+		const r = d.references;
+		const html = `
+			<div class="intelize-group-title">${__("Payments")}</div>
+			<div class="intelize-cards">
+				${card(p.total, __("Total"), "blue")}
+				${card(p.processed, __("Processed"), "green")}
+				${card(p.ready, __("Ready (no PE)"), "orange")}
+				${card(p.pending, __("Unlinked"), "red")}
+				${card(format_currency(p.amount, cur), __("Total Amount"), "purple")}
+			</div>
+			<div class="intelize-group-title">${__("References")}</div>
+			<div class="intelize-cards">
+				${card(r.total, __("Total"), "blue")}
+				${card(r.draft, __("Draft"), "orange")}
+				${card(r.active, __("Active"), "green")}
+				${card(r.disabled, __("Disabled"), "red")}
+				${card(r.completed, __("Completed"), "purple")}
+			</div>`;
+		this.body.find('.intelize-panel[data-panel="overview"]').html(html);
 	}
 
-	render_payments(payments) {
-		const $c = this.body.find(".intelize-payments");
-		if (!payments || !payments.length) {
-			$c.html(`<div class="text-muted">${__("No payments found for this period.")}</div>`);
+	render_settings_strip(s) {
+		const $strip = this.body.find(".intelize-settings-strip");
+		if (!s || !s.configured) {
+			$strip.html(
+				`<span class="intelize-pill intelize-pill-red">${__("Intelize Settings not configured / not enabled")}</span>`
+			);
 			return;
 		}
-		const badge = {
-			Processed: "green",
-			Ready: "orange",
-			Pending: "red",
-		};
-		const rows = payments
+		const parts = [
+			`<span class="intelize-pill intelize-pill-green">${__("Enabled")}</span>`,
+			s.entity_number
+				? `<span class="intelize-pill">${__("Entity")}: ${frappe.utils.escape_html(s.entity_number)}</span>`
+				: "",
+			s.base_url
+				? `<span class="intelize-pill">${frappe.utils.escape_html(s.base_url)}</span>`
+				: "",
+			`<span class="intelize-pill">${__("Auto PE")}: ${s.auto_generate_payment_entry ? __("On") : __("Off")}</span>`,
+			s.errors_24h
+				? `<span class="intelize-pill intelize-pill-red">${s.errors_24h} ${__("errors (24h)")}</span>`
+				: `<span class="intelize-pill intelize-pill-green">${__("No errors (24h)")}</span>`,
+		];
+		$strip.html(parts.join(""));
+	}
+
+	// ---------- Payments ----------
+	load_payments() {
+		const $p = this.body.find('.intelize-panel[data-panel="payments"]');
+		$p.html(`<div class="text-muted">${__("Loading...")}</div>`);
+		frappe.call({
+			method: `${IP_METHOD}.get_payments`,
+			args: this.get_filters(),
+			callback: (r) => this.render_payments(r.message || []),
+		});
+	}
+
+	render_payments(rows) {
+		const $p = this.body.find('.intelize-panel[data-panel="payments"]');
+		if (!rows.length) {
+			$p.html(`<div class="intelize-empty">${__("No payments for this period.")}</div>`);
+			return;
+		}
+		const badge = { Processed: "green", Ready: "orange", Pending: "red" };
+		const body = rows
 			.map((p) => {
 				const action =
 					p.status === "Ready"
-						? `<button class="btn btn-xs btn-primary intelize-gen-pe" data-name="${frappe.utils.escape_html(
-								p.name
-						  )}">${__("Generate PE")}</button>`
+						? `<button class="btn btn-xs btn-danger intelize-red-btn intelize-gen-pe" data-name="${frappe.utils.escape_html(p.name)}">${__("Generate PE")}</button>`
 						: p.payment_entry
-						? `<a href="/app/payment-entry/${encodeURIComponent(
-								p.payment_entry
-						  )}">${frappe.utils.escape_html(p.payment_entry)}</a>`
+						? `<a href="/app/payment-entry/${encodeURIComponent(p.payment_entry)}">${frappe.utils.escape_html(p.payment_entry)}</a>`
 						: `<span class="text-muted">&mdash;</span>`;
-				return `
-				<tr>
-					<td><a href="/app/intelize-payment/${encodeURIComponent(
-						p.name
-					)}">${frappe.utils.escape_html(p.name)}</a></td>
-					<td>${frappe.datetime.str_to_user(p.date) || ""}</td>
+				return `<tr>
+					<td><a href="/app/intelize-payment/${encodeURIComponent(p.name)}">${frappe.utils.escape_html(p.name)}</a></td>
+					<td>${frappe.utils.escape_html(p.id || "")}</td>
+					<td>${frappe.datetime.str_to_user(p.date) || ""} ${p.time ? `<span class="text-muted">${p.time}</span>` : ""}</td>
 					<td>${frappe.utils.escape_html(p.reference_number || "")}</td>
 					<td class="text-right">${format_currency(p.paid_amount)}</td>
-					<td>${
-						p.sales_invoice
-							? `<a href="/app/sales-invoice/${encodeURIComponent(
-									p.sales_invoice
-							  )}">${frappe.utils.escape_html(p.sales_invoice)}</a>`
-							: '<span class="text-muted">&mdash;</span>'
-					}</td>
-					<td><span class="indicator-pill ${badge[p.status] || "gray"}">${__(
-					p.status
-				)}</span></td>
+					<td>${p.sales_invoice ? `<a href="/app/sales-invoice/${encodeURIComponent(p.sales_invoice)}">${frappe.utils.escape_html(p.sales_invoice)}</a>` : '<span class="text-muted">&mdash;</span>'}</td>
+					<td><span class="indicator-pill ${badge[p.status] || "gray"}">${__(p.status)}</span></td>
 					<td class="text-right">${action}</td>
 				</tr>`;
 			})
 			.join("");
-		$c.html(`
-			<div class="table-responsive">
-				<table class="table table-bordered intelize-table">
-					<thead><tr>
-						<th>${__("Payment")}</th>
-						<th>${__("Date")}</th>
-						<th>${__("Reference")}</th>
-						<th class="text-right">${__("Amount")}</th>
-						<th>${__("Sales Invoice")}</th>
-						<th>${__("Status")}</th>
-						<th class="text-right">${__("Action")}</th>
-					</tr></thead>
-					<tbody>${rows}</tbody>
-				</table>
-			</div>`);
+		$p.html(this.table(
+			[__("Payment"), __("Intelize ID"), __("Date"), __("Reference"), __("Amount"), __("Sales Invoice"), __("Status"), __("Action")],
+			body,
+			["", "", "", "", "text-right", "", "", "text-right"]
+		));
+		$p.find(".intelize-gen-pe").on("click", (e) =>
+			this.generate_payment_entry($(e.currentTarget).attr("data-name"))
+		);
+	}
 
-		$c.find(".intelize-gen-pe").on("click", (e) => {
-			const name = $(e.currentTarget).attr("data-name");
-			this.generate_payment_entry(name);
+	// ---------- References ----------
+	load_references() {
+		const $p = this.body.find('.intelize-panel[data-panel="references"]');
+		$p.html(`<div class="text-muted">${__("Loading...")}</div>`);
+		frappe.call({
+			method: `${IP_METHOD}.get_references`,
+			args: this.get_filters(),
+			callback: (r) => this.render_references(r.message || []),
 		});
 	}
 
-	render_reference_logs(logs) {
-		const $c = this.body.find(".intelize-reference-logs");
-		let inner = `<div class="intelize-subtitle">${__("Reference Logs")}</div>`;
-		if (!logs || !logs.length) {
-			inner += `<div class="text-muted">${__("No logs.")}</div>`;
-		} else {
-			inner += logs
-				.map((l) => {
-					const color = l.status === "Success" ? "green" : "red";
-					return `<div class="intelize-log">
-						<span class="indicator-pill ${color}">${frappe.utils.escape_html(l.status || "")}</span>
-						<span class="intelize-log-msg">${frappe.utils.escape_html(l.message || "")}</span>
-						<span class="intelize-log-time text-muted">${frappe.datetime.comment_when(l.creation)}</span>
-					</div>`;
-				})
-				.join("");
+	render_references(rows) {
+		const $p = this.body.find('.intelize-panel[data-panel="references"]');
+		if (!rows.length) {
+			$p.html(`<div class="intelize-empty">${__("No references for this period.")}</div>`);
+			return;
 		}
-		$c.html(inner);
+		const badge = { Draft: "orange", Active: "green", Disabled: "red", Completed: "blue", Cancelled: "gray" };
+		const body = rows
+			.map((r) => {
+				const source = r.quotation
+					? `<a href="/app/quotation/${encodeURIComponent(r.quotation)}">${frappe.utils.escape_html(r.quotation)}</a>`
+					: r.sales_invoice
+					? `<a href="/app/sales-invoice/${encodeURIComponent(r.sales_invoice)}">${frappe.utils.escape_html(r.sales_invoice)}</a>`
+					: '<span class="text-muted">&mdash;</span>';
+				let actions = `<a class="btn btn-xs btn-default" href="/app/intelize-references/${encodeURIComponent(r.name)}">${__("Open")}</a>`;
+				if (r.docstatus === 1 && !r.expired) {
+					if (r.status !== "Active")
+						actions += ` <button class="btn btn-xs btn-default intelize-ref-action" data-name="${frappe.utils.escape_html(r.name)}" data-action="Activate">${__("Activate")}</button>`;
+					if (r.status !== "Disabled")
+						actions += ` <button class="btn btn-xs btn-default intelize-ref-action" data-name="${frappe.utils.escape_html(r.name)}" data-action="Disable">${__("Disable")}</button>`;
+				}
+				const due = frappe.datetime.str_to_user(r.due_date) || "";
+				return `<tr>
+					<td><a href="/app/intelize-references/${encodeURIComponent(r.name)}">${frappe.utils.escape_html(r.reference || r.name)}</a></td>
+					<td class="text-right">${format_currency(r.amount)}</td>
+					<td>${r.expired ? `<span class="intelize-expired">${due}</span>` : due}</td>
+					<td>${source}</td>
+					<td><span class="indicator-pill ${badge[r.state] || "gray"}">${__(r.state)}</span></td>
+					<td class="text-right intelize-actions">${actions}</td>
+				</tr>`;
+			})
+			.join("");
+		$p.html(this.table(
+			[__("Reference"), __("Amount"), __("Due Date"), __("Source"), __("State"), __("Actions")],
+			body,
+			["", "text-right", "", "", "", "text-right"]
+		));
+		$p.find(".intelize-ref-action").on("click", (e) => {
+			const $b = $(e.currentTarget);
+			this.change_reference_status($b.attr("data-name"), $b.attr("data-action"));
+		});
 	}
 
-	render_error_logs(logs) {
-		const $c = this.body.find(".intelize-error-logs");
-		let inner = `<div class="intelize-subtitle">${__("Fetch Error Logs")}</div>`;
-		if (!logs || !logs.length) {
-			inner += `<div class="text-muted">${__("No errors.")}</div>`;
-		} else {
-			inner += logs
-				.map(
-					(l) => `<div class="intelize-log">
-						<span class="indicator-pill red">${__("Error")}</span>
-						<span class="intelize-log-msg">${frappe.utils.escape_html(l.error || "")}</span>
-						<span class="intelize-log-time text-muted">${frappe.datetime.comment_when(l.creation)}</span>
-					</div>`
-				)
-				.join("");
-		}
-		$c.html(inner);
+	// ---------- Logs ----------
+	load_logs() {
+		const $p = this.body.find('.intelize-panel[data-panel="logs"]');
+		$p.html(`<div class="text-muted">${__("Loading...")}</div>`);
+		frappe.call({
+			method: `${IP_METHOD}.get_logs`,
+			args: { limit: 40 },
+			callback: (r) => this.render_logs(r.message || { reference_logs: [], error_logs: [] }),
+		});
+	}
+
+	render_logs(d) {
+		const ref = (d.reference_logs || [])
+			.map((l) => {
+				const color = l.status === "Success" ? "green" : "red";
+				return `<div class="intelize-log">
+					<span class="indicator-pill ${color}">${frappe.utils.escape_html(l.status || "")}</span>
+					<span class="intelize-log-msg">${frappe.utils.escape_html(l.message || "")}</span>
+					<span class="intelize-log-time text-muted">${frappe.datetime.comment_when(l.creation)}</span>
+				</div>`;
+			})
+			.join("") || `<div class="text-muted">${__("No logs.")}</div>`;
+		const err = (d.error_logs || [])
+			.map(
+				(l) => `<div class="intelize-log">
+					<span class="indicator-pill red">${__("Error")}</span>
+					<span class="intelize-log-msg">${frappe.utils.escape_html(l.error || "")}</span>
+					<span class="intelize-log-time text-muted">${frappe.datetime.comment_when(l.creation)}</span>
+				</div>`
+			)
+			.join("") || `<div class="text-muted">${__("No errors.")}</div>`;
+		this.body.find('.intelize-panel[data-panel="logs"]').html(`
+			<div class="row">
+				<div class="col-md-6">
+					<div class="intelize-subtitle">${__("Reference Logs")}</div>
+					<div class="intelize-log-box">${ref}</div>
+				</div>
+				<div class="col-md-6">
+					<div class="intelize-subtitle">${__("Fetch Error Logs")}</div>
+					<div class="intelize-log-box">${err}</div>
+				</div>
+			</div>`);
+	}
+
+	// ---------- helpers / actions ----------
+	table(headers, body_rows, aligns) {
+		const ths = headers
+			.map((h, i) => `<th class="${(aligns && aligns[i]) || ""}">${h}</th>`)
+			.join("");
+		return `<div class="table-responsive"><table class="table table-bordered intelize-table">
+			<thead><tr>${ths}</tr></thead><tbody>${body_rows}</tbody></table></div>`;
 	}
 
 	fetch_now() {
 		frappe.dom.freeze(__("Fetching payments from Intelize..."));
 		frappe.call({
-			method: `${this.method_base}.trigger_fetch`,
+			method: `${IP_METHOD}.trigger_fetch`,
 			callback: () => {
 				frappe.dom.unfreeze();
 				frappe.show_alert({ message: __("Fetch complete"), indicator: "green" });
@@ -250,17 +333,32 @@ class IntelizeDashboard {
 		frappe.confirm(__("Generate a Payment Entry for {0}?", [name]), () => {
 			frappe.dom.freeze(__("Generating Payment Entry..."));
 			frappe.call({
-				method: `${this.payment_method_base}.generate_payment_entry`,
+				method: `${IP_PAYMENT}.generate_payment_entry`,
 				args: { name },
 				callback: (r) => {
 					frappe.dom.unfreeze();
-					if (r.message && r.message.name) {
+					if (r.message && r.message.name)
 						frappe.show_alert({
 							message: __("Payment Entry {0} created", [r.message.name]),
 							indicator: "green",
 						});
-					}
 					this.refresh();
+				},
+				error: () => frappe.dom.unfreeze(),
+			});
+		});
+	}
+
+	change_reference_status(name, action) {
+		frappe.confirm(__("{0} reference {1}?", [__(action), name]), () => {
+			frappe.dom.freeze(__("Updating status..."));
+			frappe.call({
+				method: `${IP_REFERENCE}.change_status`,
+				args: { name, action },
+				callback: () => {
+					frappe.dom.unfreeze();
+					this.load_references();
+					this.load_overview();
 				},
 				error: () => frappe.dom.unfreeze(),
 			});

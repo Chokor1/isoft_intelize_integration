@@ -1,5 +1,6 @@
 import requests
 import json
+import random
 from frappe.model.document import Document
 import frappe
 from frappe import throw
@@ -69,7 +70,99 @@ class IntelizeReferences(Document):
 def get_all_references():
     references = frappe.get_all("Intelize References", fields=["reference"])
     return [ref['reference'] for ref in references]
-    
+
+
+@frappe.whitelist()
+def get_generation_settings():
+    """Return whether reference generation is enabled per source doctype.
+
+    Reads the enabled Intelize Settings record so client scripts on Quotation /
+    Sales Invoice can decide whether to show the "Create Intelize Reference" button.
+    """
+    s = frappe.db.get_value(
+        "Intelize Settings",
+        {"enabled": 1},
+        ["generate_reference_on_quotation", "generate_reference_on_sales_invoice"],
+        as_dict=1,
+    ) or {}
+    return {
+        "quotation": bool(s.get("generate_reference_on_quotation")),
+        "sales_invoice": bool(s.get("generate_reference_on_sales_invoice")),
+    }
+
+
+@frappe.whitelist()
+def can_create_reference(source_doctype, source_name):
+    """Whether the "Create Intelize Reference" button should show for a document.
+
+    Returns ``show: False`` when generation is disabled for that source doctype, or
+    when a (draft or submitted) Intelize Reference already exists for the document.
+    """
+    settings = get_generation_settings()
+    field = "quotation" if source_doctype == "Quotation" else "sales_invoice"
+    if not settings.get(field):
+        return {"show": False}
+
+    existing = frappe.db.get_value(
+        "Intelize References", {field: source_name, "docstatus": ["<", 2]}, "name"
+    )
+    return {"show": not bool(existing), "existing": existing or None}
+
+
+def _generate_next_reference():
+    """Generate a unique random 9-digit reference (same logic as the Intelize References form)."""
+    for _attempt in range(50):
+        ref = str(random.randint(100000000, 999999999))
+        if not frappe.db.exists("Intelize References", {"reference": ref}):
+            return ref
+    throw("Could not generate a unique reference number. Please try again.")
+
+
+@frappe.whitelist()
+def get_next_reference():
+    """Preview of the auto-generated reference (shown read-only in the modal)."""
+    return _generate_next_reference()
+
+
+@frappe.whitelist()
+def create_reference_from_source(source_doctype, source_name, amount, due_date, submit=0, reference=None):
+    """Create (and optionally submit) an Intelize Reference from a Quotation / Sales Invoice.
+
+    Uses the auto-generated ``reference`` shown in the modal; if it is missing, malformed,
+    or already taken (race), a fresh unique number is generated server-side. When
+    ``submit`` is truthy the document is submitted, triggering the Intelize API
+    registration in ``on_submit``.
+    """
+    if source_doctype not in ("Quotation", "Sales Invoice"):
+        throw("Unsupported source document type.")
+
+    settings = get_generation_settings()
+    key = "quotation" if source_doctype == "Quotation" else "sales_invoice"
+    if not settings.get(key):
+        throw(f"Reference generation is not enabled for {source_doctype} in Intelize Settings.")
+
+    reference = cstr(reference).strip()
+    if not (reference.isdigit() and len(reference) == 9) or frappe.db.exists(
+        "Intelize References", {"reference": reference}
+    ):
+        reference = _generate_next_reference()
+
+    doc = frappe.new_doc("Intelize References")
+    doc.reference = reference
+    doc.amount = flt(amount)
+    doc.due_date = getdate(due_date)
+    if source_doctype == "Quotation":
+        doc.quotation = source_name
+    else:
+        doc.sales_invoice = source_name
+
+    doc.insert()
+
+    if cint(submit):
+        doc.submit()
+
+    return {"name": doc.name, "reference": doc.reference}
+
 @frappe.whitelist()
 def change_status(name, action):
     doc = frappe.get_doc("Intelize References", name)

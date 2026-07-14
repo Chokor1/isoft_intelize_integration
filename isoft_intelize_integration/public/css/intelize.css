@@ -1,0 +1,17 @@
+/* App-wide Intelize styling.
+   Solid red "Create Intelize Reference" button, consistent in light & dark. */
+
+.intelize-red-btn,
+.intelize-red-btn:focus,
+.intelize-red-btn:active {
+	background-color: #dc2626 !important;
+	border-color: #dc2626 !important;
+	color: #ffffff !important;
+	font-weight: 600 !important;
+}
+
+.intelize-red-btn:hover {
+	background-color: #b91c1c !important;
+	border-color: #b91c1c !important;
+	color: #ffffff !important;
+}
