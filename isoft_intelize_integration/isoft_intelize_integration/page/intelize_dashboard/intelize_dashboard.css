@@ -2,7 +2,8 @@
    Light mode: white surfaces + red borders + dark text.
    Dark mode:  black surfaces + red borders + white text. */
 
-.intelize-dashboard {
+.intelize-dashboard,
+.intelize-cp {
 	--intelize-red: #dc2626;
 	--intelize-red-strong: #b91c1c;
 	--intelize-surface: #ffffff;
@@ -12,7 +13,8 @@
 	color: var(--intelize-text);
 }
 
-[data-theme="dark"] .intelize-dashboard {
+[data-theme="dark"] .intelize-dashboard,
+[data-theme="dark"] .intelize-cp {
 	--intelize-surface: #000000;
 	--intelize-text: #ffffff;
 	--intelize-muted: #9ca3af;
@@ -216,24 +218,38 @@
 .intelize-tab {
 	appearance: none;
 	background: transparent;
-	border: 2px solid transparent;
+	border: 1px solid transparent;
 	border-bottom: none;
 	border-radius: 10px 10px 0 0;
-	padding: 8px 18px;
+	padding: 9px 20px;
 	font-weight: 600;
-	color: var(--intelize-muted);
+	font-size: 0.9rem;
+	color: var(--intelize-text);
+	opacity: 0.6;
 	cursor: pointer;
 	margin-bottom: -2px;
+	outline: none;
+	transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
 .intelize-tab:hover {
-	color: var(--intelize-text);
+	opacity: 1;
+	background: rgba(220, 38, 38, 0.08);
+}
+
+.intelize-tab:focus,
+.intelize-tab:focus-visible,
+.intelize-tab:active {
+	outline: none;
+	box-shadow: none;
 }
 
 .intelize-tab.active {
-	color: #ffffff;
+	opacity: 1;
+	color: #ffffff !important;
 	background: var(--intelize-red);
 	border-color: var(--intelize-red);
+	box-shadow: 0 3px 8px rgba(220, 38, 38, 0.35);
 }
 
 .intelize-count {
@@ -294,4 +310,70 @@
 	border-left: 4px solid #dc2626;
 	background: rgba(220, 38, 38, 0.06);
 	border-radius: 6px;
+}
+
+/* ================= Overview hero cards ================= */
+.intelize-hero {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+	gap: 14px;
+	margin-bottom: 24px;
+}
+
+.intelize-hero-card {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	background: var(--intelize-surface);
+	color: var(--intelize-text);
+	border: 2px solid var(--intelize-red);
+	border-radius: 14px;
+	padding: 16px 20px;
+	transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.intelize-hero-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 8px 22px rgba(220, 38, 38, 0.20);
+}
+
+.intelize-hero-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 52px;
+	height: 52px;
+	border-radius: 13px;
+	font-size: 22px;
+	color: #ffffff;
+	flex: 0 0 auto;
+	background: var(--intelize-red);
+	box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+
+.intelize-hero-red .intelize-hero-icon { background: #dc2626; }
+.intelize-hero-blue .intelize-hero-icon { background: #2563eb; }
+.intelize-hero-green .intelize-hero-icon { background: #16a34a; }
+
+.intelize-hero-value {
+	font-size: 1.7rem;
+	font-weight: 800;
+	line-height: 1.1;
+	letter-spacing: -0.02em;
+	color: var(--intelize-text);
+}
+
+.intelize-hero-label {
+	font-weight: 700;
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--intelize-muted);
+	margin-top: 2px;
+}
+
+.intelize-hero-sub {
+	font-size: 0.78rem;
+	color: var(--intelize-muted);
+	margin-top: 3px;
 }

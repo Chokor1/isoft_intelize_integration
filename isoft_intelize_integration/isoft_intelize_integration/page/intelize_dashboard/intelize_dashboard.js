@@ -49,17 +49,17 @@ class IntelizeControlPanel {
 		);
 
 		this.body = $(`
-			<div class="intelize-cp">
+			<div class="intelize-cp intelize-dashboard">
 				<div class="intelize-settings-strip"></div>
 				<div class="intelize-tabs">
 					<button class="intelize-tab active" data-tab="overview">${__("Overview")}</button>
-					<button class="intelize-tab" data-tab="payments">${__("Payments")} <span class="intelize-count" data-count="payments"></span></button>
 					<button class="intelize-tab" data-tab="references">${__("References")} <span class="intelize-count" data-count="references"></span></button>
+					<button class="intelize-tab" data-tab="payments">${__("Payments")} <span class="intelize-count" data-count="payments"></span></button>
 					<button class="intelize-tab" data-tab="logs">${__("Logs")}</button>
 				</div>
 				<div class="intelize-panel" data-panel="overview"></div>
-				<div class="intelize-panel hidden" data-panel="payments"></div>
 				<div class="intelize-panel hidden" data-panel="references"></div>
+				<div class="intelize-panel hidden" data-panel="payments"></div>
 				<div class="intelize-panel hidden" data-panel="logs"></div>
 			</div>
 		`).appendTo(this.page.main);
@@ -117,14 +117,38 @@ class IntelizeControlPanel {
 
 		const p = d.payments;
 		const r = d.references;
+		const hero = (val, label, sub, color, icon) => `
+			<div class="intelize-hero-card intelize-hero-${color}">
+				<div class="intelize-hero-icon"><i class="fa ${icon}"></i></div>
+				<div class="intelize-hero-body">
+					<div class="intelize-hero-value">${val}</div>
+					<div class="intelize-hero-label">${label}</div>
+					${sub ? `<div class="intelize-hero-sub">${sub}</div>` : ""}
+				</div>
+			</div>`;
 		const html = `
-			<div class="intelize-group-title">${__("Payments")}</div>
-			<div class="intelize-cards">
-				${card(p.total, __("Total"), "blue")}
-				${card(p.processed, __("Processed"), "green")}
-				${card(p.ready, __("Ready (no PE)"), "orange")}
-				${card(p.pending, __("Unlinked"), "red")}
-				${card(format_currency(p.amount, cur), __("Total Amount"), "purple")}
+			<div class="intelize-hero">
+				${hero(
+					r.total,
+					__("References"),
+					`${r.active} ${__("active")} &middot; ${r.draft} ${__("draft")}`,
+					"red",
+					"fa-hashtag"
+				)}
+				${hero(
+					p.total,
+					__("Payments"),
+					`${p.processed} ${__("processed")} &middot; ${p.pending} ${__("unlinked")}`,
+					"blue",
+					"fa-exchange"
+				)}
+				${hero(
+					format_currency(p.amount, cur),
+					__("Payments Amount"),
+					__("in selected period"),
+					"green",
+					"fa-money"
+				)}
 			</div>
 			<div class="intelize-group-title">${__("References")}</div>
 			<div class="intelize-cards">
@@ -133,6 +157,14 @@ class IntelizeControlPanel {
 				${card(r.active, __("Active"), "green")}
 				${card(r.disabled, __("Disabled"), "red")}
 				${card(r.completed, __("Completed"), "purple")}
+			</div>
+			<div class="intelize-group-title">${__("Payments")}</div>
+			<div class="intelize-cards">
+				${card(p.total, __("Total"), "blue")}
+				${card(p.processed, __("Processed"), "green")}
+				${card(p.ready, __("Ready (no PE)"), "orange")}
+				${card(p.pending, __("Unlinked"), "red")}
+				${card(format_currency(p.amount, cur), __("Total Amount"), "purple")}
 			</div>`;
 		this.body.find('.intelize-panel[data-panel="overview"]').html(html);
 	}
