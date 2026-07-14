@@ -5,6 +5,8 @@ import frappe
 from frappe import throw
 from frappe.utils import (
     flt,
+    getdate,
+    get_time,
     nowdate,
 )
 import datetime
@@ -158,8 +160,8 @@ def create_intelize_payment(payment_data):
             "doctype": "Intelize Payment",
             "id": payment_data["id_pagamento"],
             "reference_number": payment_data['referencia_do_servico'],
-            "date": payment_data["data_movimento"],
-            "time": payment_data["hora_do_movimento"],
+            "date": getdate(payment_data["data_movimento"]),
+            "time": get_time(payment_data["hora_do_movimento"]) if payment_data.get("hora_do_movimento") else None,
             "paid_amount": flt(payment_data["montante_da_operacao"]),
             "payment_entry": None, 
             "intelize_references": intelize_reference.get("name"),
