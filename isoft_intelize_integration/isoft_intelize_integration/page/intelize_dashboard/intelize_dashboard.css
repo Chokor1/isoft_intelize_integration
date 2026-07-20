@@ -693,6 +693,7 @@
 .intelize-card-orange { --iz-accent: var(--iz-amber); }
 .intelize-card-red { --iz-accent: var(--iz-red); }
 .intelize-card-purple { --iz-accent: var(--iz-violet); }
+.intelize-card-gray { --iz-accent: #94a3b8; }
 
 /* ================= Section titles ================= */
 .intelize-group-title,

@@ -204,6 +204,7 @@ class IntelizeControlPanel {
 				${card(r.active, __("Active"), "green")}
 				${card(r.disabled, __("Disabled"), "red")}
 				${card(r.completed, __("Completed"), "purple")}
+				${card(r.expired || 0, __("Expired"), "gray")}
 			</div>
 			<div class="intelize-group-title">${__("Payments")}</div>
 			<div class="intelize-cards">
@@ -326,7 +327,14 @@ class IntelizeControlPanel {
 			$p.html(`<div class="intelize-empty">${__("No references for this period.")}</div>`);
 			return;
 		}
-		const badge = { Draft: "orange", Active: "green", Disabled: "red", Completed: "blue", Cancelled: "gray" };
+		const badge = {
+			Draft: "orange",
+			Active: "green",
+			Disabled: "red",
+			Completed: "blue",
+			Expired: "gray",
+			Cancelled: "gray",
+		};
 		const body = rows
 			.map((r) => {
 				const source = r.quotation
@@ -335,7 +343,7 @@ class IntelizeControlPanel {
 					? `<a href="/app/sales-invoice/${encodeURIComponent(r.sales_invoice)}">${frappe.utils.escape_html(r.sales_invoice)}</a>`
 					: '<span class="text-muted">&mdash;</span>';
 				let actions = `<a class="btn btn-xs btn-default" href="/app/intelize-references/${encodeURIComponent(r.name)}">${__("Open")}</a>`;
-				if (r.docstatus === 1 && !r.expired) {
+				if (r.docstatus === 1 && !r.expired && r.status !== "Completed") {
 					if (r.status !== "Active")
 						actions += ` <button class="btn btn-xs btn-default intelize-ref-action" data-name="${frappe.utils.escape_html(r.name)}" data-action="Activate">${__("Activate")}</button>`;
 					if (r.status !== "Disabled")

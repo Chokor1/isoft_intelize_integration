@@ -49,6 +49,7 @@ def get_overview(from_date=None, to_date=None):
 	r_active = sum(1 for r in refs if r.get("docstatus") == 1 and r.get("status") == "Active")
 	r_disabled = sum(1 for r in refs if r.get("status") == "Disabled")
 	r_completed = sum(1 for r in refs if r.get("status") == "Completed")
+	r_expired = sum(1 for r in refs if r.get("status") == "Expired")
 	r_amount = sum(flt(r.get("amount")) for r in refs)
 
 	s = frappe.db.get_value(
@@ -76,6 +77,7 @@ def get_overview(from_date=None, to_date=None):
 			"active": r_active,
 			"disabled": r_disabled,
 			"completed": r_completed,
+			"expired": r_expired,
 			"amount": r_amount,
 		},
 		"settings": {
@@ -139,13 +141,17 @@ def get_references(from_date=None, to_date=None):
 	)
 	today = getdate(nowdate())
 	for r in refs:
+		r["expired"] = bool(r.get("due_date") and getdate(r.get("due_date")) < today)
+
 		if r.get("docstatus") == 0:
 			r["state"] = "Draft"
 		elif r.get("docstatus") == 2:
 			r["state"] = "Cancelled"
+		elif r["expired"] and r.get("status") in ("Active", "Disabled"):
+			# the daily expiry job has not caught up with this one yet
+			r["state"] = "Expired"
 		else:
 			r["state"] = r.get("status") or "Submitted"
-		r["expired"] = bool(r.get("due_date") and getdate(r.get("due_date")) < today)
 	return refs
 
 

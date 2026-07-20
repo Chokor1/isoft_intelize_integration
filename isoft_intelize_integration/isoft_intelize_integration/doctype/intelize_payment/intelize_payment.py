@@ -171,7 +171,15 @@ def create_intelize_payment(payment_data):
         doc.insert(ignore_permissions=True)
         frappe.db.commit()
 
-        create_intelize_reference_log(intelize_reference.get("name"), 
+        # close the reference once the payments cover its full amount
+        from isoft_intelize_integration.isoft_intelize_integration.doctype.intelize_references.intelize_references import (
+            update_completion_status,
+        )
+
+        update_completion_status(intelize_reference.get("name"))
+        frappe.db.commit()
+
+        create_intelize_reference_log(intelize_reference.get("name"),
                                       f"Intelize Payment with id_pagamento {payment_data['id_pagamento']} created successfully.", 
                                       "Success")
 

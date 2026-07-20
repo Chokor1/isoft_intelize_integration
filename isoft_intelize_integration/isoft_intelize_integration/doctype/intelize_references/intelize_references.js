@@ -7,6 +7,18 @@ frappe.ui.form.on('Intelize References', {
             frm.set_value('reference', randomReference);
         }
 
+        // surface the lifecycle status in the page indicator, not just the field
+        const status_colors = {
+            Draft: "orange",
+            Active: "green",
+            Disabled: "red",
+            Completed: "blue",
+            Expired: "gray",
+        };
+        if (frm.doc.status && frm.doc.docstatus !== 2) {
+            frm.page.set_indicator(__(frm.doc.status), status_colors[frm.doc.status] || "gray");
+        }
+
         if (frm.doc.docstatus === 1 && frm.doc.due_date) {
             let currentDate = frappe.datetime.now_date();
             if (currentDate <= frm.doc.due_date && cur_frm.doc.status != 'Completed') {

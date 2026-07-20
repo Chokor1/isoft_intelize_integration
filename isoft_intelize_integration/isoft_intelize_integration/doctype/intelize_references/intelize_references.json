@@ -29,13 +29,12 @@
   },
   {
    "allow_on_submit": 1,
-   "default": "Active",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Active\nDisabled\nCompleted",
+   "options": "\nDraft\nActive\nDisabled\nCompleted\nExpired",
    "read_only": 1
   },
   {

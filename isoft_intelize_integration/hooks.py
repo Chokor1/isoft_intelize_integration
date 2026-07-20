@@ -25,7 +25,10 @@ scheduler_events = {
 		"0/5 * * * *": [
 			"isoft_intelize_integration.isoft_intelize_integration.doctype.intelize_payment.intelize_payment.fetch_payment_data",
 		]
-	}
+	},
+	"daily": [
+		"isoft_intelize_integration.isoft_intelize_integration.doctype.intelize_references.intelize_references.expire_due_references",
+	],
 }
 
 # Client Scripts

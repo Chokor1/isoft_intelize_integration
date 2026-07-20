@@ -13,6 +13,12 @@ from frappe.utils import (
 )
 
 class IntelizeReferences(Document):
+    def validate(self):
+        # A reference only becomes Active once it has been registered with Intelize
+        # on submit, so an unsubmitted document must not claim to be Active.
+        if self.docstatus == 0:
+            self.status = "Draft"
+
     def on_submit(self):
         settings = frappe.db.get_value("Intelize Settings", {'enabled': 1}, 
             ["base_url", "api_token", "max_amount_per_reference"], as_dict=1)
@@ -54,9 +60,11 @@ class IntelizeReferences(Document):
 
             if response.status_code == 200 or response.status_code == 201:
                 json_response = response.json()
-                
+
                 if 'info' in json_response and 'num_referencia' in json_response['info']:
                     num_referencia = json_response['info']['num_referencia']
+                    # registered with Intelize — it is live from now until the due date
+                    self.db_set("status", "Expired" if getdate(self.due_date) < getdate(nowdate()) else "Active")
                     frappe.msgprint(f"Reference created successfully! Reference number: {num_referencia}")
                 else:
                     frappe.throw("Failed to create reference!")
@@ -163,18 +171,83 @@ def create_reference_from_source(source_doctype, source_name, amount, due_date, 
 
     return {"name": doc.name, "reference": doc.reference}
 
+OPEN_STATUSES = ("Active", "Disabled")
+
+
+def expire_due_references():
+    """Flip submitted references past their due date to ``Expired``.
+
+    Intelize stops accepting payments on a reference once ``due_date`` has passed,
+    but nothing used to reflect that locally, so references stayed ``Active``
+    forever. Runs daily; ``Completed`` and ``Cancelled`` documents are left alone
+    because a paid reference stays paid regardless of its due date.
+    """
+    stale = frappe.get_all(
+        "Intelize References",
+        filters={
+            "docstatus": 1,
+            "status": ["in", OPEN_STATUSES],
+            "due_date": ["<", nowdate()],
+        },
+        pluck="name",
+        limit_page_length=0,
+    )
+    for name in stale:
+        frappe.db.set_value("Intelize References", name, "status", "Expired", update_modified=False)
+
+    if stale:
+        frappe.db.commit()
+
+    return len(stale)
+
+
+def update_completion_status(reference_name):
+    """Mark a reference ``Completed`` once payments cover its full amount.
+
+    Called after an Intelize Payment is created. References registered as
+    ``montante_limitado_para_pagamento_longo`` accept several partial payments, so
+    completion is decided on the summed total, not on the first payment received.
+    """
+    ref = frappe.db.get_value(
+        "Intelize References", reference_name, ["amount", "status", "docstatus"], as_dict=1
+    )
+    if not ref or ref.docstatus != 1 or ref.status == "Completed":
+        return
+
+    amount = flt(ref.amount)
+    if amount <= 0:
+        return
+
+    paid = flt(
+        frappe.db.get_value(
+            "Intelize Payment",
+            {"intelize_references": reference_name},
+            "sum(paid_amount)",
+        )
+    )
+
+    # tolerate rounding noise from the payment provider
+    if paid + 0.005 >= amount:
+        frappe.db.set_value("Intelize References", reference_name, "status", "Completed")
+
+
 @frappe.whitelist()
 def change_status(name, action):
     doc = frappe.get_doc("Intelize References", name)
-    
+
     if doc.docstatus != 1:
         throw("You can only change the status of submitted documents.")
-    
+
+    if doc.status == "Completed":
+        throw("This reference has already been paid in full and cannot be changed.")
+
     current_date = frappe.utils.nowdate()
-    
+
     if getdate(current_date) > getdate(doc.due_date):
-        throw("Cannot change the status as the due date has already passed.")
-    
+        throw("This reference expired on {0} and can no longer be activated or disabled.".format(
+            frappe.utils.formatdate(doc.due_date)
+        ))
+
     if action == "Activate":
         doc.status = "Active"
         api_url = f"/v1/auth/referencias/activar/{doc.reference}"
