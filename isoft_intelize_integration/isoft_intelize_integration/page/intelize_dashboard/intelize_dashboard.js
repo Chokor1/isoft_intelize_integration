@@ -24,38 +24,47 @@ class IntelizeControlPanel {
 	}
 
 	make() {
-		this.from_date = this.page.add_field({
-			fieldname: "from_date",
-			label: __("From Date"),
-			fieldtype: "Date",
-			default: frappe.datetime.add_months(frappe.datetime.get_today(), -1),
-		});
-		this.to_date = this.page.add_field({
-			fieldname: "to_date",
-			label: __("To Date"),
-			fieldtype: "Date",
-			default: frappe.datetime.get_today(),
-		});
-		this.from_date.$input.on("change", () => this.refresh());
-		this.to_date.$input.on("change", () => this.refresh());
-
-		this.page.set_primary_action(__("Refresh"), () => this.refresh(), "refresh");
-		this.page.add_button(__("Fetch Now"), () => this.fetch_now(), { icon: "download" });
-		this.page.add_menu_item(__("Intelize Settings"), () =>
-			frappe.set_route("List", "Intelize Settings")
-		);
-		this.page.add_menu_item(__("New Reference"), () =>
-			frappe.new_doc("Intelize References")
-		);
-
 		this.body = $(`
 			<div class="intelize-cp intelize-dashboard">
-				<div class="intelize-settings-strip"></div>
-				<div class="intelize-tabs">
-					<button class="intelize-tab active" data-tab="overview">${__("Overview")}</button>
-					<button class="intelize-tab" data-tab="references">${__("References")} <span class="intelize-count" data-count="references"></span></button>
-					<button class="intelize-tab" data-tab="payments">${__("Payments")} <span class="intelize-count" data-count="payments"></span></button>
-					<button class="intelize-tab" data-tab="logs">${__("Logs")}</button>
+				<div class="intelize-header">
+					<div class="intelize-header-main">
+						<div class="intelize-brand"><i class="fa fa-bolt"></i></div>
+						<div class="intelize-header-text">
+							<div class="intelize-header-title">${__("Intelize Control Panel")}</div>
+							<div class="intelize-header-sub"></div>
+						</div>
+					</div>
+					<div class="intelize-header-right">
+						<div class="intelize-settings-strip"></div>
+						<div class="intelize-header-actions">
+							<button class="intelize-btn intelize-btn-primary" data-action="fetch">
+								<i class="fa fa-cloud-download"></i> ${__("Fetch Now")}
+							</button>
+							<button class="intelize-btn" data-action="new-reference">
+								<i class="fa fa-plus"></i> ${__("New Reference")}
+							</button>
+							<button class="intelize-btn intelize-btn-square" data-action="settings" title="${__("Intelize Settings")}" aria-label="${__("Intelize Settings")}">
+								<i class="fa fa-cog"></i>
+							</button>
+						</div>
+					</div>
+				</div>
+				<div class="intelize-toolbar">
+					<div class="intelize-tabs">
+						<button class="intelize-tab active" data-tab="overview">${__("Overview")}</button>
+						<button class="intelize-tab" data-tab="references">${__("References")} <span class="intelize-count" data-count="references"></span></button>
+						<button class="intelize-tab" data-tab="payments">${__("Payments")} <span class="intelize-count" data-count="payments"></span></button>
+						<button class="intelize-tab" data-tab="logs">${__("Logs")}</button>
+					</div>
+					<div class="intelize-daterange">
+						<i class="fa fa-calendar intelize-daterange-icon"></i>
+						<div class="intelize-date" data-date="from"></div>
+						<span class="intelize-daterange-sep">&rarr;</span>
+						<div class="intelize-date" data-date="to"></div>
+						<button class="intelize-icon-btn" data-action="refresh" title="${__("Refresh")}" aria-label="${__("Refresh")}">
+							<i class="fa fa-refresh"></i>
+						</button>
+					</div>
 				</div>
 				<div class="intelize-panel" data-panel="overview"></div>
 				<div class="intelize-panel hidden" data-panel="references"></div>
@@ -64,9 +73,47 @@ class IntelizeControlPanel {
 			</div>
 		`).appendTo(this.page.main);
 
+		// the header card carries the title and every action, so the page head is dead weight
+		this.page.wrapper.find(".page-head").addClass("hidden");
+
+		this.make_date_controls();
+
+		this.body.find('[data-action="fetch"]').on("click", () => this.fetch_now());
+		this.body.find('[data-action="new-reference"]').on("click", () =>
+			frappe.new_doc("Intelize References")
+		);
+		this.body.find('[data-action="settings"]').on("click", () =>
+			frappe.set_route("List", "Intelize Settings")
+		);
+
 		this.body.find(".intelize-tab").on("click", (e) => {
 			this.switch_tab($(e.currentTarget).attr("data-tab"));
 		});
+
+		this.body.find('.intelize-icon-btn[data-action="refresh"]').on("click", (e) => {
+			const $btn = $(e.currentTarget);
+			$btn.addClass("spinning");
+			setTimeout(() => $btn.removeClass("spinning"), 700);
+			this.refresh();
+		});
+	}
+
+	make_date_controls() {
+		const make = (selector, value) => {
+			const control = frappe.ui.form.make_control({
+				parent: this.body.find(selector),
+				df: { fieldtype: "Date", fieldname: "date", placeholder: __("Date") },
+				render_input: true,
+			});
+			control.set_value(value);
+			control.$input.on("change", () => this.refresh());
+			return control;
+		};
+		this.from_date = make(
+			'.intelize-date[data-date="from"]',
+			frappe.datetime.add_months(frappe.datetime.get_today(), -1)
+		);
+		this.to_date = make('.intelize-date[data-date="to"]', frappe.datetime.get_today());
 	}
 
 	get_filters() {
@@ -171,24 +218,45 @@ class IntelizeControlPanel {
 
 	render_settings_strip(s) {
 		const $strip = this.body.find(".intelize-settings-strip");
+		const $sub = this.body.find(".intelize-header-sub");
+
 		if (!s || !s.configured) {
+			$sub.text(__("Not connected"));
+			this.body.find(".intelize-brand").addClass("intelize-brand-off");
 			$strip.html(
-				`<span class="intelize-pill intelize-pill-red">${__("Intelize Settings not configured / not enabled")}</span>`
+				`<span class="intelize-pill intelize-pill-red"><span class="intelize-dot"></span>${__(
+					"Settings not configured / not enabled"
+				)}</span>`
 			);
 			return;
 		}
+
+		this.body.find(".intelize-brand").removeClass("intelize-brand-off");
+		$sub.html(
+			[
+				s.base_url
+					? `<span class="intelize-host">${frappe.utils.escape_html(s.base_url)}</span>`
+					: "",
+				s.entity_number
+					? `<span class="intelize-sub-sep">&middot;</span>${__("Entity")} <b>${frappe.utils.escape_html(
+							s.entity_number
+					  )}</b>`
+					: "",
+			].join("")
+		);
+
 		const parts = [
-			`<span class="intelize-pill intelize-pill-green">${__("Enabled")}</span>`,
-			s.entity_number
-				? `<span class="intelize-pill">${__("Entity")}: ${frappe.utils.escape_html(s.entity_number)}</span>`
-				: "",
-			s.base_url
-				? `<span class="intelize-pill">${frappe.utils.escape_html(s.base_url)}</span>`
-				: "",
-			`<span class="intelize-pill">${__("Auto PE")}: ${s.auto_generate_payment_entry ? __("On") : __("Off")}</span>`,
+			`<span class="intelize-pill intelize-pill-green"><span class="intelize-dot"></span>${__("Enabled")}</span>`,
+			`<span class="intelize-pill">${__("Auto PE")}: <b>${
+				s.auto_generate_payment_entry ? __("On") : __("Off")
+			}</b></span>`,
 			s.errors_24h
-				? `<span class="intelize-pill intelize-pill-red">${s.errors_24h} ${__("errors (24h)")}</span>`
-				: `<span class="intelize-pill intelize-pill-green">${__("No errors (24h)")}</span>`,
+				? `<span class="intelize-pill intelize-pill-red"><span class="intelize-dot"></span>${s.errors_24h} ${__(
+						"errors (24h)"
+				  )}</span>`
+				: `<span class="intelize-pill intelize-pill-green"><span class="intelize-dot"></span>${__(
+						"No errors (24h)"
+				  )}</span>`,
 		];
 		$strip.html(parts.join(""));
 	}
@@ -344,8 +412,8 @@ class IntelizeControlPanel {
 		const ths = headers
 			.map((h, i) => `<th class="${(aligns && aligns[i]) || ""}">${h}</th>`)
 			.join("");
-		return `<div class="table-responsive"><table class="table table-bordered intelize-table">
-			<thead><tr>${ths}</tr></thead><tbody>${body_rows}</tbody></table></div>`;
+		return `<div class="intelize-glass"><div class="table-responsive"><table class="table intelize-table">
+			<thead><tr>${ths}</tr></thead><tbody>${body_rows}</tbody></table></div></div>`;
 	}
 
 	fetch_now() {
